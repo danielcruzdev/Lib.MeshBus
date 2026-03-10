@@ -22,10 +22,15 @@ public static class ServiceCollectionExtensions
         // Register default serializer if not already registered
         services.TryAddSingleton<IMessageSerializer, SystemTextJsonSerializer>();
 
+        // Register factories for named producers/consumers
+        services.TryAddSingleton<IMeshBusPublisherFactory, MeshBusPublisherFactory>();
+        services.TryAddSingleton<IMeshBusSubscriberFactory, MeshBusSubscriberFactory>();
+
         var builder = new MeshBusBuilder(services);
         configure?.Invoke(builder);
 
         return builder;
     }
 }
+
 

@@ -20,5 +20,27 @@ public class MeshBusBuilder
     {
         Services = services ?? throw new ArgumentNullException(nameof(services));
     }
+
+    /// <summary>
+    /// Registers a named producer. Call a provider extension (e.g. <c>.UseKafka()</c>)
+    /// on the returned builder to complete the registration.
+    /// </summary>
+    /// <param name="name">A unique name that identifies this producer.</param>
+    public NamedProducerBuilder AddProducer(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return new NamedProducerBuilder(name, Services);
+    }
+
+    /// <summary>
+    /// Registers a named consumer. Call a provider extension (e.g. <c>.UseKafka()</c>)
+    /// on the returned builder to complete the registration.
+    /// </summary>
+    /// <param name="name">A unique name that identifies this consumer.</param>
+    public NamedConsumerBuilder AddConsumer(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return new NamedConsumerBuilder(name, Services);
+    }
 }
 

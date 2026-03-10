@@ -13,7 +13,7 @@ namespace Lib.MeshBus.AzureServiceBus.DependencyInjection;
 public static class AzureServiceBusMeshBusBuilderExtensions
 {
     /// <summary>
-    /// Configures MeshBus to use Azure Service Bus as the messaging provider.
+    /// Configures MeshBus to use Azure Service Bus as the messaging provider (single provider mode).
     /// </summary>
     /// <param name="builder">The MeshBus builder.</param>
     /// <param name="configure">Action to configure Azure Service Bus options.</param>
@@ -58,5 +58,66 @@ public static class AzureServiceBusMeshBusBuilderExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Configures a named producer to use Azure Service Bus as the messaging provider.
+    /// </summary>
+    /// <param name="builder">The named producer builder.</param>
+    /// <param name="configure">Action to configure Azure Service Bus options.</param>
+    /// <returns>The <see cref="NamedProducerBuilder"/> for chaining.</returns>
+    public static NamedProducerBuilder UseAzureServiceBus(this NamedProducerBuilder builder, Action<AzureServiceBusOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        builder.Services.AddKeyedSingleton<IMeshBusPublisher>(builder.Name, (sp, _) =>
+        {
+            var options = new AzureServiceBusOptions();
+            configure(options);
+
+            if (string.IsNullOrEmpty(options.ConnectionString))
+            {
+                throw new InvalidOperationException(
+                    "ConnectionString must be provided for Azure Service Bus. " +
+                    "For managed identity support, register ServiceBusClient manually.");
+            }
+
+            var client = new ServiceBusClient(options.ConnectionString);
+            var serializer = sp.GetRequiredService<IMessageSerializer>();
+            return new AzureServiceBusPublisher(client, serializer);
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures a named consumer to use Azure Service Bus as the messaging provider.
+    /// </summary>
+    /// <param name="builder">The named consumer builder.</param>
+    /// <param name="configure">Action to configure Azure Service Bus options.</param>
+    /// <returns>The <see cref="NamedConsumerBuilder"/> for chaining.</returns>
+    public static NamedConsumerBuilder UseAzureServiceBus(this NamedConsumerBuilder builder, Action<AzureServiceBusOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        builder.Services.AddKeyedSingleton<IMeshBusSubscriber>(builder.Name, (sp, _) =>
+        {
+            var options = new AzureServiceBusOptions();
+            configure(options);
+
+            if (string.IsNullOrEmpty(options.ConnectionString))
+            {
+                throw new InvalidOperationException(
+                    "ConnectionString must be provided for Azure Service Bus. " +
+                    "For managed identity support, register ServiceBusClient manually.");
+            }
+
+            var client = new ServiceBusClient(options.ConnectionString);
+            var serializer = sp.GetRequiredService<IMessageSerializer>();
+            return new AzureServiceBusSubscriber(client, serializer, options);
+        });
+
+        return builder;
+    }
 }
+
 

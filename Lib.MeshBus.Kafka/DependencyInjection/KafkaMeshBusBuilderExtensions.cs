@@ -13,7 +13,7 @@ namespace Lib.MeshBus.Kafka.DependencyInjection;
 public static class KafkaMeshBusBuilderExtensions
 {
     /// <summary>
-    /// Configures MeshBus to use Apache Kafka as the messaging provider.
+    /// Configures MeshBus to use Apache Kafka as the messaging provider (single provider mode).
     /// </summary>
     /// <param name="builder">The MeshBus builder.</param>
     /// <param name="configure">Action to configure Kafka options.</param>
@@ -63,6 +63,66 @@ public static class KafkaMeshBusBuilderExtensions
         builder.Services.AddSingleton<IMeshBusSubscriber>(sp =>
         {
             var consumer = sp.GetRequiredService<IConsumer<string, byte[]>>();
+            var serializer = sp.GetRequiredService<IMessageSerializer>();
+            return new KafkaSubscriber(consumer, serializer);
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures a named producer to use Apache Kafka as the messaging provider.
+    /// </summary>
+    /// <param name="builder">The named producer builder.</param>
+    /// <param name="configure">Action to configure Kafka options.</param>
+    /// <returns>The <see cref="NamedProducerBuilder"/> for chaining.</returns>
+    public static NamedProducerBuilder UseKafka(this NamedProducerBuilder builder, Action<KafkaOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        builder.Services.AddKeyedSingleton<IMeshBusPublisher>(builder.Name, (sp, _) =>
+        {
+            var options = new KafkaOptions();
+            configure(options);
+
+            var producerConfig = new ProducerConfig
+            {
+                BootstrapServers = options.BootstrapServers,
+                Acks = ParseAcks(options.Acks),
+                AllowAutoCreateTopics = options.AllowAutoCreateTopics
+            };
+            var producer = new ProducerBuilder<string, byte[]>(producerConfig).Build();
+            var serializer = sp.GetRequiredService<IMessageSerializer>();
+            return new KafkaPublisher(producer, serializer);
+        });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures a named consumer to use Apache Kafka as the messaging provider.
+    /// </summary>
+    /// <param name="builder">The named consumer builder.</param>
+    /// <param name="configure">Action to configure Kafka options.</param>
+    /// <returns>The <see cref="NamedConsumerBuilder"/> for chaining.</returns>
+    public static NamedConsumerBuilder UseKafka(this NamedConsumerBuilder builder, Action<KafkaOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        builder.Services.AddKeyedSingleton<IMeshBusSubscriber>(builder.Name, (sp, _) =>
+        {
+            var options = new KafkaOptions();
+            configure(options);
+
+            var consumerConfig = new ConsumerConfig
+            {
+                BootstrapServers = options.BootstrapServers,
+                GroupId = options.GroupId ?? $"meshbus-{Guid.NewGuid():N}",
+                AutoOffsetReset = ParseAutoOffsetReset(options.AutoOffsetReset),
+                EnableAutoCommit = options.EnableAutoCommit,
+                AllowAutoCreateTopics = options.AllowAutoCreateTopics
+            };
+            var consumer = new ConsumerBuilder<string, byte[]>(consumerConfig).Build();
             var serializer = sp.GetRequiredService<IMessageSerializer>();
             return new KafkaSubscriber(consumer, serializer);
         });

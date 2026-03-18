@@ -4,6 +4,7 @@
 
 Connect your application to any message broker through a single interface. Switching brokers = changing **one line of code**.
 
+[![CI](https://github.com/danielcruzdev/Lib.MeshBus/actions/workflows/ci.yml/badge.svg)](https://github.com/danielcruzdev/Lib.MeshBus/actions/workflows/ci.yml)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple)](https://dotnet.microsoft.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 

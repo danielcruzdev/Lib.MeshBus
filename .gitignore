@@ -3,7 +3,7 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
-.github/
+.instructions/
 .idea/
 
 ## Ignore Visual Studio temporary files, build results, and

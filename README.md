@@ -13,6 +13,7 @@ Connect your application to any message broker through a single interface. Switc
 ## 📋 Table of Contents
 
 - [Overview](#overview)
+- [Running the Samples](#running-the-samples)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Multiple Providers in the Same Service](#multiple-providers-in-the-same-service)
@@ -26,6 +27,67 @@ Connect your application to any message broker through a single interface. Switc
 - [Testing with Docker](#testing-with-docker)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
+
+---
+
+## 🚀 Running the Samples
+
+The fastest way to see Lib.MeshBus in action is through the interactive demo console — **no configuration required**, just Docker.
+
+### 1. Start the brokers
+
+```bash
+docker compose up -d
+```
+
+This starts:
+| Container | Service | Port |
+|-----------|---------|------|
+| `meshbus-kafka` | Apache Kafka (KRaft) | `9092` |
+| `meshbus-rabbitmq` | RabbitMQ | `5672` · Management UI: [localhost:15672](http://localhost:15672) (guest/guest) |
+
+### 2. Run the demo console
+
+```bash
+dotnet run --project Lib.MeshBus.Samples
+```
+
+You'll get an interactive menu:
+
+```
+  ╔═══════════════════════════════════════════════╗
+  ║         Lib.MeshBus — Interactive Demo        ║
+  ╚═══════════════════════════════════════════════╝
+
+    [1]  Apache Kafka
+    [2]  RabbitMQ
+    [3]  Azure Service Bus
+    [4]  Multi-Broker  (Kafka + RabbitMQ)
+
+    [0]  Exit
+```
+
+Each scenario subscribes to a topic, publishes 5 messages, and prints the received messages — all using the same `IMeshBusPublisher` / `IMeshBusSubscriber` interfaces, regardless of the broker.
+
+### 3. Configure (optional)
+
+Broker addresses are read from `Lib.MeshBus.Samples/appsettings.json`. The defaults match the Docker Compose setup, so no changes are needed for local testing:
+
+```json
+{
+  "Kafka":           { "BootstrapServers": "localhost:9092", "GroupId": "meshbus-samples" },
+  "RabbitMQ":        { "HostName": "localhost", "UserName": "guest", "Password": "guest" },
+  "AzureServiceBus": { "ConnectionString": "" }
+}
+```
+
+To test the **Azure Service Bus** scenario, fill in `ConnectionString` with a real namespace or an [emulator connection string](https://learn.microsoft.com/en-us/azure/service-bus-messaging/overview-emulator).
+
+### 4. Stop the brokers
+
+```bash
+docker compose down
+```
 
 ---
 
@@ -586,153 +648,7 @@ services.AddMeshBus(bus => bus.UseKafka(...));
 
 ## Testing with Docker
 
-Use the commands below to spin up each broker locally via Docker and validate the integration with the library.
-
----
-
-### Apache Kafka
-
-```bash
-# Start Kafka in KRaft mode (no Zookeeper required)
-docker run -d \
-  --name kafka \
-  -p 9092:9092 \
-  -e KAFKA_NODE_ID=1 \
-  -e KAFKA_PROCESS_ROLES=broker,controller \
-  -e KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093 \
-  -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
-  -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
-  -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT \
-  -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
-  -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-  -e KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
-  -e KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
-  -e KAFKA_LOG_DIRS=/tmp/kraft-combined-logs \
-  -e CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk \
-  apache/kafka:latest
-```
-
-**MeshBus configuration:**
-```csharp
-opts.BootstrapServers = "localhost:9092";
-opts.GroupId = "my-group";
-opts.AllowAutoCreateTopics = true;
-```
-
-**Verify it's running:**
-```bash
-# List topics
-docker exec kafka /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server localhost:9092 --list
-
-# Stop and remove
-docker stop kafka && docker rm kafka
-```
-
----
-
-### RabbitMQ
-
-```bash
-# Start RabbitMQ with Management UI (http://localhost:15672)
-docker run -d \
-  --name rabbitmq \
-  -p 5672:5672 \
-  -p 15672:15672 \
-  -e RABBITMQ_DEFAULT_USER=guest \
-  -e RABBITMQ_DEFAULT_PASS=guest \
-  rabbitmq:3-management
-```
-
-**MeshBus configuration:**
-```csharp
-opts.HostName = "localhost";
-opts.Port = 5672;
-opts.UserName = "guest";
-opts.Password = "guest";
-opts.VirtualHost = "/";
-```
-
-**Access Management UI:** http://localhost:15672 (guest/guest)
-
-```bash
-# Stop and remove
-docker stop rabbitmq && docker rm rabbitmq
-```
-
----
-
-### Azure Service Bus (Local Emulator)
-
-Microsoft provides an official Azure Service Bus emulator:
-
-```bash
-# Prerequisite: accept the EULA
-# Ref: https://github.com/Azure/azure-service-bus-emulator-installer
-
-# Start the emulator
-docker run -d \
-  --name servicebus-emulator \
-  -p 5672:5672 \
-  -e ACCEPT_EULA=Y \
-  mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
-```
-
-**MeshBus configuration:**
-```csharp
-opts.ConnectionString = "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
-```
-
-```bash
-# Stop and remove
-docker stop servicebus-emulator && docker rm servicebus-emulator
-```
-
----
-
-### All Brokers at Once (docker compose)
-
-Create a `docker-compose.yml` file at the root of the project to start everything together:
-
-```yaml
-services:
-  kafka:
-    image: apache/kafka:latest
-    container_name: meshbus-kafka
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
-      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
-
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: meshbus-rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-
-  servicebus-emulator:
-    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
-    container_name: meshbus-servicebus
-    ports:
-      - "5300:5672"
-    environment:
-      ACCEPT_EULA: "Y"
-```
+A `docker-compose.yml` is included at the root of the repository. It starts **Apache Kafka** and **RabbitMQ** with a single command — no manual configuration needed.
 
 ```bash
 # Start all brokers
@@ -741,41 +657,38 @@ docker compose up -d
 # View logs
 docker compose logs -f
 
-# Stop everything
-docker compose down
+# Stop and remove containers + volumes
+docker compose down -v
 ```
 
-**MeshBus configuration with all brokers (multi-provider):**
-```csharp
-services.AddMeshBus(bus =>
+| Service | Container | Ports |
+|---------|-----------|-------|
+| Apache Kafka (KRaft) | `meshbus-kafka` | `9092` |
+| RabbitMQ | `meshbus-rabbitmq` | `5672` (AMQP) · `15672` (Management UI) |
+
+**RabbitMQ Management UI:** http://localhost:15672 — credentials: `guest / guest`
+
+### Azure Service Bus (Local Emulator)
+
+For Azure Service Bus, Microsoft provides an official emulator (requires EULA acceptance):
+
+```bash
+# Ref: https://github.com/Azure/azure-service-bus-emulator-installer
+docker run -d \
+  --name servicebus-emulator \
+  -p 5672:5672 \
+  -e ACCEPT_EULA=Y \
+  mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+```
+
+Then set the connection string in `Lib.MeshBus.Samples/appsettings.json`:
+
+```json
 {
-    bus.AddProducer("kafka-producer").UseKafka(opts =>
-    {
-        opts.BootstrapServers = "localhost:9092";
-        opts.AllowAutoCreateTopics = true;
-    });
-
-    bus.AddProducer("rabbit-producer").UseRabbitMq(opts =>
-    {
-        opts.HostName = "localhost";
-        opts.UserName = "guest";
-        opts.Password = "guest";
-    });
-
-    bus.AddConsumer("kafka-consumer").UseKafka(opts =>
-    {
-        opts.BootstrapServers = "localhost:9092";
-        opts.GroupId = "my-service";
-        opts.AllowAutoCreateTopics = true;
-    });
-
-    bus.AddConsumer("rabbit-consumer").UseRabbitMq(opts =>
-    {
-        opts.HostName = "localhost";
-        opts.UserName = "guest";
-        opts.Password = "guest";
-    });
-});
+  "AzureServiceBus": {
+    "ConnectionString": "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
+  }
+}
 ```
 
 ---
@@ -790,9 +703,6 @@ dotnet test
 dotnet test --filter "FullyQualifiedName~Kafka"
 dotnet test --filter "FullyQualifiedName~RabbitMQ"
 dotnet test --filter "FullyQualifiedName~AzureServiceBus"
-
-# Factory tests (multi-provider)
-dotnet test --filter "FullyQualifiedName~MeshBusFactoryTests"
 
 # With code coverage
 dotnet test --collect:"XPlat Code Coverage"

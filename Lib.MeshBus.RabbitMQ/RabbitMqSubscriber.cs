@@ -19,6 +19,7 @@ public class RabbitMqSubscriber : IMeshBusSubscriber
     private readonly IChannel _channel;
     private readonly IMessageSerializer _serializer;
     private readonly RabbitMqOptions _options;
+    private readonly bool _ownsConnection;
     private readonly ConcurrentDictionary<string, string> _consumerTags = new();
     private bool _disposed;
     private bool _exchangeDeclared;
@@ -26,12 +27,15 @@ public class RabbitMqSubscriber : IMeshBusSubscriber
     /// <summary>
     /// Creates a new RabbitMqSubscriber using existing connection and channel.
     /// </summary>
-    public RabbitMqSubscriber(IConnection connection, IChannel channel, IMessageSerializer serializer, RabbitMqOptions options)
+    /// <param name="ownsConnection">When true, the subscriber closes and disposes the connection on dispose.
+    /// Set to false when the connection is managed externally (e.g. by the DI container).</param>
+    public RabbitMqSubscriber(IConnection connection, IChannel channel, IMessageSerializer serializer, RabbitMqOptions options, bool ownsConnection = false)
     {
         _connection = connection ?? throw new ArgumentNullException(nameof(connection));
         _channel = channel ?? throw new ArgumentNullException(nameof(channel));
         _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _ownsConnection = ownsConnection;
     }
 
     /// <inheritdoc />
@@ -176,6 +180,7 @@ public class RabbitMqSubscriber : IMeshBusSubscriber
     {
         if (!_disposed)
         {
+            _disposed = true;
             foreach (var kvp in _consumerTags)
             {
                 try
@@ -190,9 +195,11 @@ public class RabbitMqSubscriber : IMeshBusSubscriber
             _consumerTags.Clear();
             await _channel.CloseAsync();
             _channel.Dispose();
-            await _connection.CloseAsync();
-            _connection.Dispose();
-            _disposed = true;
+            if (_ownsConnection)
+            {
+                await _connection.CloseAsync();
+                _connection.Dispose();
+            }
         }
     }
 }

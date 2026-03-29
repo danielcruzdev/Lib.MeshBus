@@ -17,18 +17,22 @@ public class RabbitMqPublisher : IMeshBusPublisher
     private readonly IChannel _channel;
     private readonly IMessageSerializer _serializer;
     private readonly RabbitMqOptions _options;
+    private readonly bool _ownsConnection;
     private bool _disposed;
     private bool _exchangeDeclared;
 
     /// <summary>
     /// Creates a new RabbitMqPublisher using existing connection and channel.
     /// </summary>
-    public RabbitMqPublisher(IConnection connection, IChannel channel, IMessageSerializer serializer, RabbitMqOptions options)
+    /// <param name="ownsConnection">When true, the publisher closes and disposes the connection on dispose.
+    /// Set to false when the connection is managed externally (e.g. by the DI container).</param>
+    public RabbitMqPublisher(IConnection connection, IChannel channel, IMessageSerializer serializer, RabbitMqOptions options, bool ownsConnection = false)
     {
         _connection = connection ?? throw new ArgumentNullException(nameof(connection));
         _channel = channel ?? throw new ArgumentNullException(nameof(channel));
         _serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _ownsConnection = ownsConnection;
     }
 
     /// <inheritdoc />
@@ -121,11 +125,14 @@ public class RabbitMqPublisher : IMeshBusPublisher
     {
         if (!_disposed)
         {
+            _disposed = true;
             await _channel.CloseAsync();
             _channel.Dispose();
-            await _connection.CloseAsync();
-            _connection.Dispose();
-            _disposed = true;
+            if (_ownsConnection)
+            {
+                await _connection.CloseAsync();
+                _connection.Dispose();
+            }
         }
     }
 }

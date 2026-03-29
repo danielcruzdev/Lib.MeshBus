@@ -17,6 +17,7 @@ public class KafkaSubscriber : IMeshBusSubscriber
     private readonly IConsumer<string, byte[]> _consumer;
     private readonly IMessageSerializer _serializer;
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _activeSubscriptions = new();
+    private readonly ConcurrentDictionary<string, Task> _consumeLoops = new();
     private bool _disposed;
 
     /// <summary>
@@ -64,8 +65,8 @@ public class KafkaSubscriber : IMeshBusSubscriber
 
         _consumer.Subscribe(topic);
 
-        // Start background consume loop
-        _ = Task.Run(async () =>
+        // Start background consume loop — store the task so we can await it on teardown
+        var loopTask = Task.Run(async () =>
         {
             try
             {
@@ -90,24 +91,28 @@ public class KafkaSubscriber : IMeshBusSubscriber
             {
                 // Expected when unsubscribing
             }
-        }, cts.Token);
+        });
 
+        _consumeLoops[topic] = loopTask;
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public Task UnsubscribeAsync(string topic, CancellationToken cancellationToken = default)
+    public async Task UnsubscribeAsync(string topic, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(topic);
 
         if (_activeSubscriptions.TryRemove(topic, out var cts))
         {
             cts.Cancel();
+
+            // Wait for the background loop to finish before closing the consumer
+            if (_consumeLoops.TryRemove(topic, out var loopTask))
+                await loopTask.ConfigureAwait(false);
+
             cts.Dispose();
             _consumer.Unsubscribe();
         }
-
-        return Task.CompletedTask;
     }
 
     private MeshBusMessage<T> ConvertToMeshBusMessage<T>(ConsumeResult<string, byte[]> consumeResult)
@@ -158,21 +163,27 @@ public class KafkaSubscriber : IMeshBusSubscriber
     };
 
     /// <inheritdoc />
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (!_disposed)
         {
+            _disposed = true;
+
+            // Cancel all running loops
             foreach (var kvp in _activeSubscriptions)
-            {
                 kvp.Value.Cancel();
+
+            // Await all loops before closing the native consumer
+            await Task.WhenAll(_consumeLoops.Values).ConfigureAwait(false);
+
+            foreach (var kvp in _activeSubscriptions)
                 kvp.Value.Dispose();
-            }
+
             _activeSubscriptions.Clear();
+            _consumeLoops.Clear();
             _consumer.Close();
             _consumer.Dispose();
-            _disposed = true;
         }
-        return ValueTask.CompletedTask;
     }
 }
 

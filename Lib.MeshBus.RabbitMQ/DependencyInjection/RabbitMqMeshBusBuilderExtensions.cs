@@ -88,7 +88,7 @@ public static class RabbitMqMeshBusBuilderExtensions
             var connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
             var channel = connection.CreateChannelAsync().GetAwaiter().GetResult();
             var serializer = sp.GetRequiredService<IMessageSerializer>();
-            return new RabbitMqPublisher(connection, channel, serializer, options);
+            return new RabbitMqPublisher(connection, channel, serializer, options, ownsConnection: true);
         });
 
         return builder;
@@ -120,7 +120,7 @@ public static class RabbitMqMeshBusBuilderExtensions
             var connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
             var channel = connection.CreateChannelAsync().GetAwaiter().GetResult();
             var serializer = sp.GetRequiredService<IMessageSerializer>();
-            return new RabbitMqSubscriber(connection, channel, serializer, options);
+            return new RabbitMqSubscriber(connection, channel, serializer, options, ownsConnection: true);
         });
 
         return builder;

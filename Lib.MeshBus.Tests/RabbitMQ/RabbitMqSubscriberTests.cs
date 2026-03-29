@@ -194,7 +194,8 @@ public class RabbitMqSubscriberTests
     [Fact]
     public async Task DisposeAsync_ShouldCloseChannelAndConnection()
     {
-        await _subscriber.DisposeAsync();
+        var subscriber = new RabbitMqSubscriber(_mockConnection, _mockChannel, _mockSerializer, _options, ownsConnection: true);
+        await subscriber.DisposeAsync();
 
         await _mockChannel.Received(1).CloseAsync(Arg.Any<CancellationToken>());
         _mockChannel.Received(1).Dispose();
@@ -205,8 +206,9 @@ public class RabbitMqSubscriberTests
     [Fact]
     public async Task DisposeAsync_CalledTwice_ShouldOnlyDisposeOnce()
     {
-        await _subscriber.DisposeAsync();
-        await _subscriber.DisposeAsync();
+        var subscriber = new RabbitMqSubscriber(_mockConnection, _mockChannel, _mockSerializer, _options, ownsConnection: true);
+        await subscriber.DisposeAsync();
+        await subscriber.DisposeAsync();
 
         _mockChannel.Received(1).Dispose();
         _mockConnection.Received(1).Dispose();

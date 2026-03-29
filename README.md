@@ -265,6 +265,24 @@ dotnet add package Lib.MeshBus
 dotnet add package Lib.MeshBus.AzureServiceBus
 ```
 
+### Azure Event Hubs
+```bash
+dotnet add package Lib.MeshBus
+dotnet add package Lib.MeshBus.EventHubs
+```
+
+### AWS SQS
+```bash
+dotnet add package Lib.MeshBus
+dotnet add package Lib.MeshBus.Sqs
+```
+
+### Google Cloud Pub/Sub
+```bash
+dotnet add package Lib.MeshBus
+dotnet add package Lib.MeshBus.GooglePubSub
+```
+
 ---
 
 ## Quick Start
@@ -445,6 +463,110 @@ services.AddMeshBus(bus => bus.UseAzureServiceBus(opts =>
 | PublishAsync | SendMessageAsync |
 | PublishBatchAsync | CreateMessageBatchAsync + SendMessagesAsync |
 | SubscribeAsync | ServiceBusProcessor.StartProcessingAsync |
+
+---
+
+### Azure Event Hubs
+
+```csharp
+using Lib.MeshBus.DependencyInjection;
+using Lib.MeshBus.EventHubs.DependencyInjection;
+
+services.AddMeshBus(bus => bus.UseEventHubs(opts =>
+{
+    // Namespace-level connection string (no EntityPath)
+    opts.ConnectionString = "Endpoint=sb://my-namespace.servicebus.windows.net/;...";
+    opts.ConsumerGroup    = "$Default";  // consumer group for receiving events
+}));
+```
+
+**Local testing** — no dedicated Event Hubs emulator; use a real Azure namespace.
+
+**Concept mapping:**
+| MeshBus | Azure Event Hubs |
+|---------|-----------------|
+| Topic | Event Hub name |
+| Message.Id | `meshbus.id` property |
+| Message.Headers | EventData.Properties |
+| Message.CorrelationId | `meshbus.correlationId` property |
+| PublishAsync | EventHubProducerClient.SendAsync |
+| PublishBatchAsync | EventHubProducerClient.CreateBatchAsync + SendAsync |
+| SubscribeAsync | EventHubConsumerClient.ReadEventsAsync (all partitions) |
+
+---
+
+### AWS SQS
+
+```csharp
+using Lib.MeshBus.DependencyInjection;
+using Lib.MeshBus.Sqs.DependencyInjection;
+
+// Real AWS (credentials from environment / ~/.aws/credentials / instance profile)
+services.AddMeshBus(bus => bus.UseSqs(opts =>
+{
+    opts.RegionName = "us-east-1";
+}));
+
+// LocalStack / ElasticMQ
+services.AddMeshBus(bus => bus.UseSqs(opts =>
+{
+    opts.ServiceUrl       = "http://localhost:9324";
+    opts.AccountId        = "000000000000";
+    opts.AccessKey        = "test";
+    opts.SecretKey        = "test";
+    opts.AutoCreateQueues = true;   // auto-create queues on first use
+    opts.WaitTimeSeconds  = 20;     // long polling (0–20 seconds)
+}));
+```
+
+**Local testing** — start ElasticMQ with `docker compose up -d elasticmq`.
+
+**Concept mapping:**
+| MeshBus | AWS SQS |
+|---------|---------|
+| Topic | SQS Queue name |
+| Message (all fields) | JSON envelope in SQS message body |
+| PublishAsync | AmazonSQSClient.SendMessageAsync |
+| PublishBatchAsync | AmazonSQSClient.SendMessageBatchAsync (up to 10/request) |
+| SubscribeAsync | Long-polling loop (ReceiveMessageAsync + DeleteMessageAsync) |
+
+---
+
+### Google Cloud Pub/Sub
+
+```csharp
+using Lib.MeshBus.DependencyInjection;
+using Lib.MeshBus.GooglePubSub.DependencyInjection;
+
+// Google Cloud (uses Application Default Credentials)
+services.AddMeshBus(bus => bus.UseGooglePubSub(opts =>
+{
+    opts.ProjectId           = "my-gcp-project";
+    opts.SubscriptionSuffix  = "meshbus-sub"; // subscription = "{topic}-meshbus-sub"
+    opts.AutoCreateResources = true;           // auto-create topics and subscriptions
+}));
+
+// Local emulator
+services.AddMeshBus(bus => bus.UseGooglePubSub(opts =>
+{
+    opts.ProjectId           = "demo-project";
+    opts.EmulatorHost        = "localhost:8085";
+    opts.AutoCreateResources = true;
+}));
+```
+
+**Local testing** — start the emulator with `docker compose up -d pubsub-emulator`.
+
+**Concept mapping:**
+| MeshBus | Google Pub/Sub |
+|---------|---------------|
+| Topic | Pub/Sub Topic (`projects/{project}/topics/{name}`) |
+| Message.Id | `meshbus.id` attribute |
+| Message.Headers | PubsubMessage.Attributes |
+| Message.CorrelationId | `meshbus.correlationId` attribute |
+| PublishAsync | PublisherServiceApiClient.PublishAsync |
+| SubscribeAsync | Polling: SubscriberServiceApiClient.PullAsync + AcknowledgeAsync |
+| Subscription name | `projects/{project}/subscriptions/{topic}-{SubscriptionSuffix}` |
 
 ---
 
@@ -632,17 +754,18 @@ services.AddMeshBus(bus => bus.UseKafka(...));
 
 ## Compatibility Matrix
 
-| Feature | Kafka | RabbitMQ | Azure Service Bus |
-|---------|:-----:|:--------:|:-----------------:|
-| PublishAsync | ✅ | ✅ | ✅ |
-| PublishBatchAsync | ✅ | ✅ | ✅ (native batch) |
-| SubscribeAsync | ✅ | ✅ | ✅ |
-| UnsubscribeAsync | ✅ | ✅ | ✅ |
-| Headers/Metadata | ✅ | ✅ | ✅ |
-| CorrelationId | ✅ | ✅ (native) | ✅ (native) |
-| Durable Messages | ✅ | ✅ | ✅ |
-| Custom Serialization | ✅ | ✅ | ✅ |
-| IAsyncDisposable | ✅ | ✅ | ✅ |
+| Feature | Kafka | RabbitMQ | Azure Service Bus | Azure Event Hubs | AWS SQS | Google Pub/Sub |
+|---------|:-----:|:--------:|:-----------------:|:----------------:|:-------:|:--------------:|
+| PublishAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| PublishBatchAsync | ✅ | ✅ | ✅ (native batch) | ✅ (native batch) | ✅ (up to 10/req) | ✅ |
+| SubscribeAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| UnsubscribeAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Headers/Metadata | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| CorrelationId | ✅ | ✅ (native) | ✅ (native) | ✅ | ✅ | ✅ |
+| Durable Messages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Custom Serialization | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| IAsyncDisposable | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Local Emulator | ✅ (KRaft) | ✅ | ✅ (official) | — | ✅ (ElasticMQ) | ✅ (gcloud) |
 
 ---
 
@@ -665,6 +788,8 @@ docker compose down -v
 |---------|-----------|-------|
 | Apache Kafka (KRaft) | `meshbus-kafka` | `9092` |
 | RabbitMQ | `meshbus-rabbitmq` | `5672` (AMQP) · `15672` (Management UI) |
+| ElasticMQ (AWS SQS) | `meshbus-elasticmq` | `9324` (SQS API) · `9325` (UI) |
+| Google Pub/Sub Emulator | `meshbus-pubsub` | `8085` |
 
 **RabbitMQ Management UI:** http://localhost:15672 — credentials: `guest / guest`
 
@@ -703,6 +828,9 @@ dotnet test
 dotnet test --filter "FullyQualifiedName~Kafka"
 dotnet test --filter "FullyQualifiedName~RabbitMQ"
 dotnet test --filter "FullyQualifiedName~AzureServiceBus"
+dotnet test --filter "FullyQualifiedName~EventHubs"
+dotnet test --filter "FullyQualifiedName~SQS"
+dotnet test --filter "FullyQualifiedName~GooglePubSub"
 
 # With code coverage
 dotnet test --collect:"XPlat Code Coverage"
@@ -717,13 +845,13 @@ dotnet test --collect:"XPlat Code Coverage"
 - [x] RabbitMQ
 - [x] Azure Service Bus
 
-### ⬜ Phase 2 — Cloud Providers
-- [ ] Azure Event Hubs
+### ✅ Phase 2 — Cloud Providers (Current)
+- [x] Azure Event Hubs
+- [x] AWS SQS
+- [x] Google Pub/Sub
 - [ ] Azure Event Grid
-- [ ] AWS SQS
 - [ ] AWS SNS
 - [ ] AWS EventBridge
-- [ ] Google Pub/Sub
 - [ ] Google Cloud Tasks
 
 ### ⬜ Phase 3 — Enterprise & Specialized
@@ -772,7 +900,16 @@ Lib.MeshBus/
 ├── Lib.MeshBus.AzureServiceBus/    # Azure Service Bus provider
 │   └── DependencyInjection/
 │       └── AzureServiceBusMeshBusBuilderExtensions.cs
-├── Lib.MeshBus.Tests/              # Unit tests (148 tests)
+├── Lib.MeshBus.EventHubs/          # Azure Event Hubs provider
+│   └── DependencyInjection/
+│       └── EventHubsMeshBusBuilderExtensions.cs
+├── Lib.MeshBus.Sqs/                # AWS SQS provider
+│   └── DependencyInjection/
+│       └── SqsMeshBusBuilderExtensions.cs
+├── Lib.MeshBus.GooglePubSub/       # Google Cloud Pub/Sub provider
+│   └── DependencyInjection/
+│       └── GooglePubSubMeshBusBuilderExtensions.cs
+├── Lib.MeshBus.Tests/              # Unit tests
 ├── .github/PRD.md                  # Product Requirements Document
 └── README.md                       # Documentation
 ```

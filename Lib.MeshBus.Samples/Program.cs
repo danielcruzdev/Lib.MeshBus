@@ -30,6 +30,9 @@ while (true)
     Console.WriteLine("    [2]  RabbitMQ");
     Console.WriteLine("    [3]  Azure Service Bus");
     Console.WriteLine("    [4]  Multi-Broker  (Kafka + RabbitMQ)");
+    Console.WriteLine("    [5]  Azure Event Hubs");
+    Console.WriteLine("    [6]  AWS SQS");
+    Console.WriteLine("    [7]  Google Cloud Pub/Sub");
     Console.WriteLine();
     Console.WriteLine("    [0]  Exit");
     Console.WriteLine();
@@ -57,6 +60,9 @@ while (true)
             case '2': await new RabbitMqScenario().RunAsync(config, cts.Token); break;
             case '3': await new AzureServiceBusScenario().RunAsync(config, cts.Token); break;
             case '4': await new MultiProviderScenario().RunAsync(config, cts.Token); break;
+            case '5': await new EventHubsScenario().RunAsync(config, cts.Token); break;
+            case '6': await new SqsScenario().RunAsync(config, cts.Token); break;
+            case '7': await new GooglePubSubScenario().RunAsync(config, cts.Token); break;
             default:
                 Console.WriteLine();
                 Console.ForegroundColor = ConsoleColor.DarkGray;

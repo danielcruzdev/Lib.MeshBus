@@ -148,7 +148,8 @@ public class RabbitMqPublisherTests
     [Fact]
     public async Task DisposeAsync_ShouldCloseChannelAndConnection()
     {
-        await _publisher.DisposeAsync();
+        var publisher = new RabbitMqPublisher(_mockConnection, _mockChannel, _mockSerializer, _options, ownsConnection: true);
+        await publisher.DisposeAsync();
 
         await _mockChannel.Received(1).CloseAsync(Arg.Any<CancellationToken>());
         _mockChannel.Received(1).Dispose();
@@ -159,8 +160,9 @@ public class RabbitMqPublisherTests
     [Fact]
     public async Task DisposeAsync_CalledTwice_ShouldOnlyDisposeOnce()
     {
-        await _publisher.DisposeAsync();
-        await _publisher.DisposeAsync();
+        var publisher = new RabbitMqPublisher(_mockConnection, _mockChannel, _mockSerializer, _options, ownsConnection: true);
+        await publisher.DisposeAsync();
+        await publisher.DisposeAsync();
 
         _mockChannel.Received(1).Dispose();
         _mockConnection.Received(1).Dispose();

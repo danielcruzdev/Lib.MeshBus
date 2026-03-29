@@ -14,6 +14,9 @@
         <ProjectReference Include="..\Lib.MeshBus.Kafka\Lib.MeshBus.Kafka.csproj" />
         <ProjectReference Include="..\Lib.MeshBus.RabbitMQ\Lib.MeshBus.RabbitMQ.csproj" />
         <ProjectReference Include="..\Lib.MeshBus.AzureServiceBus\Lib.MeshBus.AzureServiceBus.csproj" />
+        <ProjectReference Include="..\Lib.MeshBus.EventHubs\Lib.MeshBus.EventHubs.csproj" />
+        <ProjectReference Include="..\Lib.MeshBus.Sqs\Lib.MeshBus.Sqs.csproj" />
+        <ProjectReference Include="..\Lib.MeshBus.GooglePubSub\Lib.MeshBus.GooglePubSub.csproj" />
     </ItemGroup>
 
     <ItemGroup>

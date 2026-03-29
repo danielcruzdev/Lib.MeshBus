@@ -71,7 +71,7 @@ public class AzureServiceBusScenario
 
         for (int i = 1; i <= MessageCount; i++)
         {
-            var order = new Order { Id = i, Product = $"CloudItem-{i:D2}", Amount = i * 19.99m };
+            var order = new Order { Id = Random.Shared.Next(1000, 9999), Product = RandomProduct(), Amount = Math.Round((decimal)(Random.Shared.NextDouble() * 200 + 5), 2) };
             var message = MeshBusMessage<Order>.Create(order, Queue);
             await publisher.PublishAsync(message, ct);
             Output.Sent(order.ToString());
@@ -85,6 +85,12 @@ public class AzureServiceBusScenario
         Output.Summary(received.Count, MessageCount);
 
         await subscriber.UnsubscribeAsync(Queue, ct);
+    }
+
+    private static string RandomProduct()
+    {
+        string[] names = ["Keyboard", "Monitor", "Headset", "Webcam", "Mouse", "Hub USB", "SSD", "Cable HDMI", "Desk Lamp", "Mousepad"];
+        return names[Random.Shared.Next(names.Length)];
     }
 
     private static void NotConfigured()

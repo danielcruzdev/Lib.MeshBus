@@ -63,7 +63,7 @@ public class KafkaScenario
 
         for (int i = 1; i <= MessageCount; i++)
         {
-            var order = new Order { Id = i, Product = $"Widget-{i:D2}", Amount = i * 12.50m };
+            var order = new Order { Id = Random.Shared.Next(1000, 9999), Product = RandomProduct(), Amount = Math.Round((decimal)(Random.Shared.NextDouble() * 200 + 5), 2) };
             var message = MeshBusMessage<Order>.Create(order, Topic);
             await publisher.PublishAsync(message, ct);
             Output.Sent(order.ToString());
@@ -77,5 +77,11 @@ public class KafkaScenario
         Output.Summary(received.Count, MessageCount);
 
         await subscriber.UnsubscribeAsync(Topic, ct);
+    }
+
+    private static string RandomProduct()
+    {
+        string[] names = ["Keyboard", "Monitor", "Headset", "Webcam", "Mouse", "Hub USB", "SSD", "Cable HDMI", "Desk Lamp", "Mousepad"];
+        return names[Random.Shared.Next(names.Length)];
     }
 }

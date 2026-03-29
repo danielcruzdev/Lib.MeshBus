@@ -111,8 +111,8 @@ public class MultiProviderScenario
 
         for (int i = 1; i <= MessageCount; i++)
         {
-            var kafkaOrder  = new Order { Id = i,       Product = $"Kafka-Widget-{i}",  Amount = i * 15.00m };
-            var rabbitOrder = new Order { Id = i + 100, Product = $"Rabbit-Gadget-{i}", Amount = i * 22.50m };
+            var kafkaOrder  = new Order { Id = Random.Shared.Next(1000, 9999), Product = $"[K] {RandomProduct()}", Amount = Math.Round((decimal)(Random.Shared.NextDouble() * 200 + 5), 2) };
+            var rabbitOrder = new Order { Id = Random.Shared.Next(1000, 9999), Product = $"[R] {RandomProduct()}", Amount = Math.Round((decimal)(Random.Shared.NextDouble() * 200 + 5), 2) };
 
             await kafkaPublisher.PublishAsync(MeshBusMessage<Order>.Create(kafkaOrder, KafkaTopic), ct);
             Output.Line($"  [→ KAFKA]   {kafkaOrder}", ConsoleColor.Green);
@@ -131,5 +131,11 @@ public class MultiProviderScenario
 
         await kafkaSub.UnsubscribeAsync(KafkaTopic, ct);
         await rabbitSub.UnsubscribeAsync(RabbitTopic, ct);
+    }
+
+    private static string RandomProduct()
+    {
+        string[] names = ["Keyboard", "Monitor", "Headset", "Webcam", "Mouse", "Hub USB", "SSD", "Cable HDMI", "Desk Lamp", "Mousepad"];
+        return names[Random.Shared.Next(names.Length)];
     }
 }

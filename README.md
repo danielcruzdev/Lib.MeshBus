@@ -63,6 +63,13 @@ You'll get an interactive menu:
     [2]  RabbitMQ
     [3]  Azure Service Bus
     [4]  Multi-Broker  (Kafka + RabbitMQ)
+    [5]  Azure Event Hubs
+    [6]  AWS SQS
+    [7]  Google Cloud Pub/Sub
+    [8]  Azure Event Grid
+    [9]  AWS SNS
+    [A]  AWS EventBridge
+    [B]  Google Cloud Tasks
 
     [0]  Exit
 ```
@@ -281,6 +288,30 @@ dotnet add package Lib.MeshBus.Sqs
 ```bash
 dotnet add package Lib.MeshBus
 dotnet add package Lib.MeshBus.GooglePubSub
+```
+
+### Azure Event Grid
+```bash
+dotnet add package Lib.MeshBus
+dotnet add package Lib.MeshBus.EventGrid
+```
+
+### AWS SNS
+```bash
+dotnet add package Lib.MeshBus
+dotnet add package Lib.MeshBus.Sns
+```
+
+### AWS EventBridge
+```bash
+dotnet add package Lib.MeshBus
+dotnet add package Lib.MeshBus.EventBridge
+```
+
+### Google Cloud Tasks
+```bash
+dotnet add package Lib.MeshBus
+dotnet add package Lib.MeshBus.GoogleCloudTasks
 ```
 
 ---
@@ -570,6 +601,157 @@ services.AddMeshBus(bus => bus.UseGooglePubSub(opts =>
 
 ---
 
+### Azure Event Grid
+
+```csharp
+using Lib.MeshBus.DependencyInjection;
+using Lib.MeshBus.EventGrid.DependencyInjection;
+
+services.AddMeshBus(bus => bus.UseEventGrid(opts =>
+{
+    // Publishing — Event Grid Topic
+    opts.TopicEndpoint = "https://my-topic.eastus-1.eventgrid.azure.net/api/events";
+    opts.AccessKey     = "your-topic-access-key";
+
+    // Subscribing — Event Grid Namespace (pull delivery)
+    opts.NamespaceEndpoint  = "https://my-namespace.eastus-1.eventgrid.azure.net";
+    opts.NamespaceAccessKey = "your-namespace-access-key";
+    opts.NamespaceTopicName = "meshbus-demo";
+    opts.SubscriptionName   = "meshbus-sub";
+    opts.MaxEvents          = 10;
+    opts.MaxWaitTimeSeconds = 10;
+}));
+```
+
+**Concept mapping:**
+| MeshBus | Azure Event Grid |
+|---------|-----------------|
+| Topic | EventGridEvent.Subject |
+| Message.Id | EventGridEvent.Id |
+| Message.Headers | Data dictionary |
+| PublishAsync | EventGridPublisherClient.SendEventAsync |
+| PublishBatchAsync | EventGridPublisherClient.SendEventsAsync |
+| SubscribeAsync | EventGridReceiverClient.ReceiveAsync (pull delivery) |
+
+---
+
+### AWS SNS
+
+```csharp
+using Lib.MeshBus.DependencyInjection;
+using Lib.MeshBus.Sns.DependencyInjection;
+
+// Real AWS
+services.AddMeshBus(bus => bus.UseSns(opts =>
+{
+    opts.RegionName       = "us-east-1";
+    opts.AutoCreateTopics = true;
+    opts.AutoCreateSqsSubscription = true; // auto-creates SQS queue for consuming
+}));
+
+// LocalStack
+services.AddMeshBus(bus => bus.UseSns(opts =>
+{
+    opts.ServiceUrl              = "http://localhost:4566";
+    opts.AccessKey               = "test";
+    opts.SecretKey               = "test";
+    opts.AccountId               = "000000000000";
+    opts.AutoCreateTopics        = true;
+    opts.AutoCreateSqsSubscription = true;
+    opts.SqsServiceUrl           = "http://localhost:4566";
+    opts.WaitTimeSeconds         = 20;
+}));
+```
+
+**Concept mapping:**
+| MeshBus | AWS SNS |
+|---------|---------|
+| Topic | SNS Topic name (auto-resolved to ARN) |
+| Message (all fields) | JSON envelope in SNS message body |
+| PublishAsync | AmazonSNSClient.PublishAsync |
+| PublishBatchAsync | AmazonSNSClient.PublishBatchAsync (up to 10/req) |
+| SubscribeAsync | SQS queue subscribed to SNS topic (long-polling) |
+
+---
+
+### AWS EventBridge
+
+```csharp
+using Lib.MeshBus.DependencyInjection;
+using Lib.MeshBus.EventBridge.DependencyInjection;
+
+// Real AWS
+services.AddMeshBus(bus => bus.UseEventBridge(opts =>
+{
+    opts.RegionName        = "us-east-1";
+    opts.EventBusName      = "default";
+    opts.Source             = "meshbus";
+    opts.AutoCreateSqsTarget = true; // auto-creates SQS queue + rule for consuming
+}));
+
+// LocalStack
+services.AddMeshBus(bus => bus.UseEventBridge(opts =>
+{
+    opts.ServiceUrl          = "http://localhost:4566";
+    opts.AccessKey           = "test";
+    opts.SecretKey           = "test";
+    opts.AccountId           = "000000000000";
+    opts.EventBusName        = "default";
+    opts.Source              = "meshbus";
+    opts.AutoCreateSqsTarget = true;
+    opts.SqsServiceUrl       = "http://localhost:4566";
+    opts.WaitTimeSeconds     = 20;
+}));
+```
+
+**Concept mapping:**
+| MeshBus | AWS EventBridge |
+|---------|----------------|
+| Topic | DetailType (event type on the bus) |
+| Message (all fields) | JSON envelope in Detail |
+| PublishAsync | AmazonEventBridgeClient.PutEventsAsync |
+| PublishBatchAsync | PutEventsAsync (up to 10 entries/request) |
+| SubscribeAsync | SQS queue + EventBridge rule targeting it |
+
+---
+
+### Google Cloud Tasks
+
+```csharp
+using Lib.MeshBus.DependencyInjection;
+using Lib.MeshBus.GoogleCloudTasks.DependencyInjection;
+
+// Google Cloud
+services.AddMeshBus(bus => bus.UseGoogleCloudTasks(opts =>
+{
+    opts.ProjectId       = "my-gcp-project";
+    opts.LocationId      = "us-central1";
+    opts.TargetBaseUrl   = "https://my-service.run.app";
+    opts.AutoCreateQueues = true;
+}));
+
+// Emulator
+services.AddMeshBus(bus => bus.UseGoogleCloudTasks(opts =>
+{
+    opts.ProjectId       = "demo-project";
+    opts.LocationId      = "us-central1";
+    opts.TargetBaseUrl   = "https://localhost:5001";
+    opts.EmulatorHost    = "localhost:8123";
+    opts.AutoCreateQueues = true;
+}));
+```
+
+**Concept mapping:**
+| MeshBus | Google Cloud Tasks |
+|---------|--------------------|
+| Topic | Queue name |
+| Message (all fields) | HTTP task body (JSON envelope) |
+| PublishAsync | CloudTasksClient.CreateTaskAsync |
+| PublishBatchAsync | Sequential CreateTaskAsync calls |
+| SubscribeAsync | Polling: ListTasks + DeleteTask |
+
+---
+
 ## 🔄 Migration Guide
 
 ### Migrating from Kafka to RabbitMQ
@@ -754,18 +936,18 @@ services.AddMeshBus(bus => bus.UseKafka(...));
 
 ## Compatibility Matrix
 
-| Feature | Kafka | RabbitMQ | Azure Service Bus | Azure Event Hubs | AWS SQS | Google Pub/Sub |
-|---------|:-----:|:--------:|:-----------------:|:----------------:|:-------:|:--------------:|
-| PublishAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| PublishBatchAsync | ✅ | ✅ | ✅ (native batch) | ✅ (native batch) | ✅ (up to 10/req) | ✅ |
-| SubscribeAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| UnsubscribeAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Headers/Metadata | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| CorrelationId | ✅ | ✅ (native) | ✅ (native) | ✅ | ✅ | ✅ |
-| Durable Messages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Custom Serialization | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| IAsyncDisposable | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Local Emulator | ✅ (KRaft) | ✅ | ✅ (official) | — | ✅ (ElasticMQ) | ✅ (gcloud) |
+| Feature | Kafka | RabbitMQ | Azure Service Bus | Azure Event Hubs | AWS SQS | Google Pub/Sub | Azure Event Grid | AWS SNS | AWS EventBridge | Google Cloud Tasks |
+|---------|:-----:|:--------:|:-----------------:|:----------------:|:-------:|:--------------:|:----------------:|:-------:|:---------------:|:------------------:|
+| PublishAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| PublishBatchAsync | ✅ | ✅ | ✅ (native batch) | ✅ (native batch) | ✅ (up to 10/req) | ✅ | ✅ (native batch) | ✅ (up to 10/req) | ✅ (up to 10/req) | ✅ |
+| SubscribeAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pull delivery) | ✅ (via SQS) | ✅ (via SQS) | ✅ (polling) |
+| UnsubscribeAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Headers/Metadata | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| CorrelationId | ✅ | ✅ (native) | ✅ (native) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Durable Messages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Custom Serialization | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| IAsyncDisposable | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Local Emulator | ✅ (KRaft) | ✅ | ✅ (official) | — | ✅ (ElasticMQ) | ✅ (gcloud) | — | ✅ (LocalStack) | ✅ (LocalStack) | ✅ (emulator) |
 
 ---
 
@@ -831,6 +1013,10 @@ dotnet test --filter "FullyQualifiedName~AzureServiceBus"
 dotnet test --filter "FullyQualifiedName~EventHubs"
 dotnet test --filter "FullyQualifiedName~SQS"
 dotnet test --filter "FullyQualifiedName~GooglePubSub"
+dotnet test --filter "FullyQualifiedName~EventGrid"
+dotnet test --filter "FullyQualifiedName~SNS"
+dotnet test --filter "FullyQualifiedName~EventBridge"
+dotnet test --filter "FullyQualifiedName~GoogleCloudTasks"
 
 # With code coverage
 dotnet test --collect:"XPlat Code Coverage"
@@ -840,19 +1026,19 @@ dotnet test --collect:"XPlat Code Coverage"
 
 ## Roadmap
 
-### ✅ Phase 1 — MVP (Current)
+### ✅ Phase 1 — MVP
 - [x] Apache Kafka
 - [x] RabbitMQ
 - [x] Azure Service Bus
 
-### ✅ Phase 2 — Cloud Providers (Current)
+### ✅ Phase 2 — Cloud Providers
 - [x] Azure Event Hubs
 - [x] AWS SQS
 - [x] Google Pub/Sub
-- [ ] Azure Event Grid
-- [ ] AWS SNS
-- [ ] AWS EventBridge
-- [ ] Google Cloud Tasks
+- [x] Azure Event Grid
+- [x] AWS SNS
+- [x] AWS EventBridge
+- [x] Google Cloud Tasks
 
 ### ⬜ Phase 3 — Enterprise & Specialized
 - [ ] ActiveMQ
@@ -909,8 +1095,19 @@ Lib.MeshBus/
 ├── Lib.MeshBus.GooglePubSub/       # Google Cloud Pub/Sub provider
 │   └── DependencyInjection/
 │       └── GooglePubSubMeshBusBuilderExtensions.cs
+├── Lib.MeshBus.EventGrid/          # Azure Event Grid provider
+│   └── DependencyInjection/
+│       └── EventGridMeshBusBuilderExtensions.cs
+├── Lib.MeshBus.Sns/                # AWS SNS provider
+│   └── DependencyInjection/
+│       └── SnsMeshBusBuilderExtensions.cs
+├── Lib.MeshBus.EventBridge/        # AWS EventBridge provider
+│   └── DependencyInjection/
+│       └── EventBridgeMeshBusBuilderExtensions.cs
+├── Lib.MeshBus.GoogleCloudTasks/   # Google Cloud Tasks provider
+│   └── DependencyInjection/
+│       └── GoogleCloudTasksMeshBusBuilderExtensions.cs
 ├── Lib.MeshBus.Tests/              # Unit tests
-├── .github/PRD.md                  # Product Requirements Document
 └── README.md                       # Documentation
 ```
 

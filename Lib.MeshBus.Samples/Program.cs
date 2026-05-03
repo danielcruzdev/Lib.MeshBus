@@ -33,6 +33,10 @@ while (true)
     Console.WriteLine("    [5]  Azure Event Hubs");
     Console.WriteLine("    [6]  AWS SQS");
     Console.WriteLine("    [7]  Google Cloud Pub/Sub");
+    Console.WriteLine("    [8]  Azure Event Grid");
+    Console.WriteLine("    [9]  AWS SNS");
+    Console.WriteLine("    [A]  AWS EventBridge");
+    Console.WriteLine("    [B]  Google Cloud Tasks");
     Console.WriteLine();
     Console.WriteLine("    [0]  Exit");
     Console.WriteLine();
@@ -63,6 +67,10 @@ while (true)
             case '5': await new EventHubsScenario().RunAsync(config, cts.Token); break;
             case '6': await new SqsScenario().RunAsync(config, cts.Token); break;
             case '7': await new GooglePubSubScenario().RunAsync(config, cts.Token); break;
+            case '8': await new EventGridScenario().RunAsync(config, cts.Token); break;
+            case '9': await new SnsScenario().RunAsync(config, cts.Token); break;
+            case 'a' or 'A': await new EventBridgeScenario().RunAsync(config, cts.Token); break;
+            case 'b' or 'B': await new GoogleCloudTasksScenario().RunAsync(config, cts.Token); break;
             default:
                 Console.WriteLine();
                 Console.ForegroundColor = ConsoleColor.DarkGray;

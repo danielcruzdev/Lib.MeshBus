@@ -88,5 +88,34 @@ services:
       retries: 5
       start_period: 15s
 
+  # ─── Apache Pulsar (standalone mode) ────────────────────────────────────────
+  pulsar:
+    image: apachepulsar/pulsar:latest
+    container_name: meshbus-pulsar
+    command: bin/pulsar standalone
+    ports:
+      - "6650:6650"     # Binary protocol
+      - "8081:8080"     # Admin API → http://localhost:8081
+    healthcheck:
+      test: ["CMD-SHELL", "bin/pulsar-admin brokers healthcheck || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ─── HiveMQ Community Edition (MQTT 5.0 broker) ──────────────────────────
+  hivemq:
+    image: hivemq/hivemq-ce:latest
+    container_name: meshbus-hivemq
+    ports:
+      - "1883:1883"     # MQTT
+      - "8083:8080"     # Web UI → http://localhost:8083 (if available)
+    healthcheck:
+      test: ["CMD-SHELL", "echo > /dev/tcp/localhost/1883 && echo ok || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
 volumes:
   rabbitmq-data:

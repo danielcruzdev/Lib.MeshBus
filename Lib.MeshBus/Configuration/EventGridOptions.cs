@@ -13,7 +13,7 @@ public class EventGridOptions : MeshBusOptions
 
     /// <summary>
     /// Access key for authenticating with the Event Grid topic.
-    /// Either this or <see cref="ConnectionString"/> must be provided.
+    /// Either this or a connection string must be provided.
     /// </summary>
     public string? AccessKey { get; set; }
 

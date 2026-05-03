@@ -10,7 +10,7 @@ namespace Lib.MeshBus.GooglePubSub;
 
 /// <summary>
 /// Google Cloud Pub/Sub implementation of <see cref="IMeshBusSubscriber"/>.
-/// Uses a polling loop via <see cref="SubscriberServiceApiClient.PullAsync"/> so that
+/// Uses a polling loop via <see cref="SubscriberServiceApiClient"/> (<c>PullAsync</c>) so that
 /// the provider integrates cleanly with the MeshBus abstraction without requiring a
 /// background gRPC streaming thread that is hard to cancel.
 /// </summary>

@@ -20,6 +20,8 @@
         <ProjectReference Include="..\Lib.MeshBus.Sns\Lib.MeshBus.Sns.csproj" />
         <ProjectReference Include="..\Lib.MeshBus.EventBridge\Lib.MeshBus.EventBridge.csproj" />
         <ProjectReference Include="..\Lib.MeshBus.GoogleCloudTasks\Lib.MeshBus.GoogleCloudTasks.csproj" />
+        <ProjectReference Include="..\Lib.MeshBus.Pulsar\Lib.MeshBus.Pulsar.csproj" />
+        <ProjectReference Include="..\Lib.MeshBus.Mqtt\Lib.MeshBus.Mqtt.csproj" />
     </ItemGroup>
 
     <ItemGroup>

@@ -24,6 +24,10 @@ public class RabbitMqPublisher : IMeshBusPublisher
     /// <summary>
     /// Creates a new RabbitMqPublisher using existing connection and channel.
     /// </summary>
+    /// <param name="connection">An open AMQP connection.</param>
+    /// <param name="channel">An open AMQP channel.</param>
+    /// <param name="serializer">The message serializer.</param>
+    /// <param name="options">RabbitMQ configuration options.</param>
     /// <param name="ownsConnection">When true, the publisher closes and disposes the connection on dispose.
     /// Set to false when the connection is managed externally (e.g. by the DI container).</param>
     public RabbitMqPublisher(IConnection connection, IChannel channel, IMessageSerializer serializer, RabbitMqOptions options, bool ownsConnection = false)

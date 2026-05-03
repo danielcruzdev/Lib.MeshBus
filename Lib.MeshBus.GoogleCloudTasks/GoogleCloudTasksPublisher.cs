@@ -139,6 +139,7 @@ public class GoogleCloudTasksPublisher : IMeshBusPublisher
     /// <inheritdoc />
     public ValueTask DisposeAsync()
     {
+        if (_disposed) return ValueTask.CompletedTask;
         _disposed = true;
         return ValueTask.CompletedTask;
     }

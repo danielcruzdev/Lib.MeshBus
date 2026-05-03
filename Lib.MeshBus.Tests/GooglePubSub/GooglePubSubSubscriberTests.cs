@@ -141,7 +141,10 @@ public class GooglePubSubSubscriberTests
             return Task.CompletedTask;
         });
 
-        await Task.Delay(300);
+        // Use a polling loop instead of a fixed delay to avoid CI timing flakiness
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (received.Count == 0 && DateTime.UtcNow < deadline)
+            await Task.Delay(50);
 
         Assert.Single(received);
         Assert.Equal("test-id", received[0].Id);

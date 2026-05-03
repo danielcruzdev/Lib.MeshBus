@@ -6,6 +6,7 @@
         <Nullable>enable</Nullable>
         <RootNamespace>Lib.MeshBus.Pulsar</RootNamespace>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     </PropertyGroup>
 
     <ItemGroup>

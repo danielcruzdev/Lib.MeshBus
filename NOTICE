@@ -1,0 +1,107 @@
+Lib.MeshBus
+Copyright 2026 Daniel Cruz
+
+This product includes software developed by third parties.
+
+=========================================================================
+Confluent.Kafka — .NET Client for Apache Kafka
+=========================================================================
+Copyright Confluent Inc.
+Licensed under the Apache License, Version 2.0
+https://github.com/confluentinc/confluent-kafka-dotnet
+
+Apache Kafka is a registered trademark of The Apache Software Foundation.
+
+=========================================================================
+RabbitMQ.Client — .NET Client for RabbitMQ
+=========================================================================
+Copyright 2007-2026 Broadcom. All Rights Reserved.
+Licensed under the Apache License, Version 2.0 OR Mozilla Public License 2.0
+https://github.com/rabbitmq/rabbitmq-dotnet-client
+
+RabbitMQ is a trademark of Broadcom Inc. and/or its subsidiaries.
+
+=========================================================================
+Azure.Messaging.ServiceBus — Azure Service Bus client library for .NET
+=========================================================================
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the MIT License
+https://github.com/Azure/azure-sdk-for-net
+
+=========================================================================
+Azure.Messaging.EventHubs — Azure Event Hubs client library for .NET
+=========================================================================
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the MIT License
+https://github.com/Azure/azure-sdk-for-net
+
+=========================================================================
+Azure.Messaging.EventGrid — Azure Event Grid client library for .NET
+Azure.Messaging.EventGrid.Namespaces
+=========================================================================
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the MIT License
+https://github.com/Azure/azure-sdk-for-net
+
+=========================================================================
+AWSSDK.SQS — AWS SDK for .NET — Amazon SQS
+=========================================================================
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+Licensed under the Apache License, Version 2.0
+https://github.com/aws/aws-sdk-net
+
+=========================================================================
+AWSSDK.SimpleNotificationService — AWS SDK for .NET — Amazon SNS
+=========================================================================
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+Licensed under the Apache License, Version 2.0
+https://github.com/aws/aws-sdk-net
+
+=========================================================================
+AWSSDK.EventBridge — AWS SDK for .NET — Amazon EventBridge
+=========================================================================
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+Licensed under the Apache License, Version 2.0
+https://github.com/aws/aws-sdk-net
+
+=========================================================================
+Google.Cloud.PubSub.V1 — Google Cloud Pub/Sub client library for .NET
+=========================================================================
+Copyright Google LLC
+Licensed under the Apache License, Version 2.0
+https://github.com/googleapis/google-cloud-dotnet
+
+=========================================================================
+Google.Cloud.Tasks.V2 — Google Cloud Tasks client library for .NET
+=========================================================================
+Copyright Google LLC
+Licensed under the Apache License, Version 2.0
+https://github.com/googleapis/google-cloud-dotnet
+
+=========================================================================
+HiveMQtt — HiveMQ MQTT Client for .NET
+=========================================================================
+Copyright HiveMQ GmbH
+Licensed under the Apache License, Version 2.0
+https://github.com/hivemq/hivemq-mqtt-client-dotnet
+
+HiveMQ is a trademark of HiveMQ GmbH.
+
+=========================================================================
+DotPulsar — .NET Client for Apache Pulsar
+=========================================================================
+Copyright The Apache Software Foundation
+Licensed under the Apache License, Version 2.0
+https://github.com/apache/pulsar-dotnet
+
+Apache Pulsar is a trademark of The Apache Software Foundation.
+
+=========================================================================
+Microsoft.Extensions.DependencyInjection.Abstractions
+Microsoft.Extensions.Options
+Microsoft.Extensions.DependencyInjection
+Microsoft.Extensions.Configuration.Json
+=========================================================================
+Copyright (c) .NET Foundation and Contributors
+Licensed under the MIT License
+https://github.com/dotnet/runtime

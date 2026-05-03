@@ -6,7 +6,7 @@ Connect your application to any message broker through a single interface. Switc
 
 [![CI](https://github.com/danielcruzdev/Lib.MeshBus/actions/workflows/ci.yml/badge.svg)](https://github.com/danielcruzdev/Lib.MeshBus/actions/workflows/ci.yml)
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple)](https://dotnet.microsoft.com/)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 ---
 
@@ -1218,5 +1218,21 @@ Lib.MeshBus/
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+Apache License 2.0 — see [LICENSE](LICENSE) for details.
+
+---
+
+## Trademarks
+
+This project may contain trademarks or logos for third-party projects, products, or services. Use of these trademarks does not imply endorsement.
+
+- **Apache Kafka** and **Apache Pulsar** are registered trademarks of [The Apache Software Foundation](https://www.apache.org/).
+- **RabbitMQ** is a trademark of [Broadcom Inc.](https://www.broadcom.com/) and/or its subsidiaries.
+- **Azure**, **Azure Service Bus**, **Azure Event Hubs**, and **Azure Event Grid** are trademarks of [Microsoft Corporation](https://www.microsoft.com/).
+- **Amazon Web Services**, **AWS**, **Amazon SQS**, **Amazon SNS**, and **Amazon EventBridge** are trademarks of [Amazon.com, Inc.](https://aws.amazon.com/).
+- **Google Cloud**, **Google Pub/Sub**, and **Google Cloud Tasks** are trademarks of [Google LLC](https://cloud.google.com/).
+- **HiveMQ** is a trademark of [HiveMQ GmbH](https://www.hivemq.com/).
+- **MQTT** is an [OASIS](https://www.oasis-open.org/) standard.
+
+Lib.MeshBus is an independent open-source project and is **not affiliated with, endorsed by, or sponsored by** any of the above organizations.
 

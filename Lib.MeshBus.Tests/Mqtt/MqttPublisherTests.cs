@@ -108,9 +108,8 @@ public class MqttPublisherTests
         await _publisher.PublishAsync(message);
 
         Assert.NotNull(captured?.UserProperties);
-        var idProp = captured.UserProperties!.FirstOrDefault(p => p.Key == "meshbus-message-id");
-        Assert.NotNull(idProp);
-        Assert.Equal(message.Id, idProp.Value);
+        Assert.True(captured.UserProperties!.ContainsKey("meshbus-message-id"));
+        Assert.Equal(message.Id, captured.UserProperties!["meshbus-message-id"]);
     }
 
     [Fact]
@@ -145,9 +144,8 @@ public class MqttPublisherTests
         await _publisher.PublishAsync(message);
 
         Assert.NotNull(captured?.UserProperties);
-        var tenantProp = captured.UserProperties!.FirstOrDefault(p => p.Key == "x-tenant");
-        Assert.NotNull(tenantProp);
-        Assert.Equal("acme", tenantProp.Value);
+        Assert.True(captured.UserProperties!.ContainsKey("x-tenant"));
+        Assert.Equal("acme", captured.UserProperties!["x-tenant"]);
     }
 
     [Fact]

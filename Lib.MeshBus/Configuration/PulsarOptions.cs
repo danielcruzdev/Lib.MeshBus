@@ -12,7 +12,7 @@ public class PulsarOptions : MeshBusOptions
 
     /// <summary>
     /// The default topic to publish/subscribe to.
-    /// Used only in single-provider mode; in named mode, the topic comes from <see cref="MeshBusMessage{T}.Topic"/>.
+    /// Used only in single-provider mode; in named mode the topic is taken from the message at publish time.
     /// </summary>
     public string Topic { get; set; } = string.Empty;
 

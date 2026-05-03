@@ -36,7 +36,7 @@ public class MeshBusException : Exception
     /// <param name="message">The error message.</param>
     /// <param name="innerException">The original exception from the provider SDK.</param>
     /// <param name="provider">The name of the messaging provider.</param>
-    public MeshBusException(string message, Exception innerException, string provider)
+    public MeshBusException(string message, Exception? innerException, string provider)
         : base(message, innerException)
     {
         Provider = provider;

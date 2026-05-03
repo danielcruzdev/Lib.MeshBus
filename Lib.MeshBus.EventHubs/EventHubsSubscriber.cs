@@ -9,7 +9,7 @@ namespace Lib.MeshBus.EventHubs;
 
 /// <summary>
 /// Azure Event Hubs implementation of <see cref="IMeshBusSubscriber"/>.
-/// Uses <see cref="EventHubConsumerClient.ReadEventsAsync"/> to stream events
+/// Uses <see cref="EventHubConsumerClient.ReadEventsAsync(System.Threading.CancellationToken)"/> to stream events
 /// from all partitions of the target event hub.
 /// </summary>
 public class EventHubsSubscriber : IMeshBusSubscriber

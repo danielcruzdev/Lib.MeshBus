@@ -28,6 +28,7 @@ public class EventGridPublisher : IMeshBusPublisher
     /// <inheritdoc />
     public async Task PublishAsync<T>(MeshBusMessage<T> message, CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(message);
 
         try
@@ -47,6 +48,7 @@ public class EventGridPublisher : IMeshBusPublisher
     /// <inheritdoc />
     public async Task PublishBatchAsync<T>(IEnumerable<MeshBusMessage<T>> messages, CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(messages);
 
         var byTopic = messages.GroupBy(m => m.Topic);

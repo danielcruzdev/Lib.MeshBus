@@ -1,3 +1,4 @@
+using System.Security;
 using HiveMQtt.Client;
 using HiveMQtt.Client.Options;
 using Lib.MeshBus.Configuration;
@@ -26,7 +27,13 @@ internal static class MqttClientFactory
             builder.WithUserName(options.Username);
 
         if (!string.IsNullOrWhiteSpace(options.Password))
-            builder.WithPassword(options.Password);
+        {
+            var securePassword = new SecureString();
+            foreach (var c in options.Password)
+                securePassword.AppendChar(c);
+            securePassword.MakeReadOnly();
+            builder.WithPassword(securePassword);
+        }
 
         var hiveMqOptions = builder.Build();
         var client = new HiveMQClient(hiveMqOptions);

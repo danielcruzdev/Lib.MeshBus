@@ -37,6 +37,8 @@ while (true)
     Console.WriteLine("    [9]  AWS SNS");
     Console.WriteLine("    [A]  AWS EventBridge");
     Console.WriteLine("    [B]  Google Cloud Tasks");
+    Console.WriteLine("    [C]  Apache Pulsar");
+    Console.WriteLine("    [D]  HiveMQ / MQTT 5.0");
     Console.WriteLine();
     Console.WriteLine("    [0]  Exit");
     Console.WriteLine();
@@ -71,6 +73,8 @@ while (true)
             case '9': await new SnsScenario().RunAsync(config, cts.Token); break;
             case 'a' or 'A': await new EventBridgeScenario().RunAsync(config, cts.Token); break;
             case 'b' or 'B': await new GoogleCloudTasksScenario().RunAsync(config, cts.Token); break;
+            case 'c' or 'C': await new PulsarScenario().RunAsync(config, cts.Token); break;
+            case 'd' or 'D': await new MqttScenario().RunAsync(config, cts.Token); break;
             default:
                 Console.WriteLine();
                 Console.ForegroundColor = ConsoleColor.DarkGray;

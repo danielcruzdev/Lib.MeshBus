@@ -21,6 +21,8 @@ Connect your application to any message broker through a single interface. Switc
   - [Apache Kafka](#apache-kafka)
   - [RabbitMQ](#rabbitmq)
   - [Azure Service Bus](#azure-service-bus)
+  - [Apache Pulsar](#apache-pulsar)
+  - [MQTT (HiveMQ)](#mqtt-hivemq)
 - [Migration Guide](#migration-guide)
 - [API Reference](#api-reference)
 - [Compatibility Matrix](#compatibility-matrix)
@@ -45,6 +47,10 @@ This starts:
 |-----------|---------|------|
 | `meshbus-kafka` | Apache Kafka (KRaft) | `9092` |
 | `meshbus-rabbitmq` | RabbitMQ | `5672` · Management UI: [localhost:15672](http://localhost:15672) (guest/guest) |
+| `meshbus-elasticmq` | ElasticMQ (SQS-compatible) | `9324` |
+| `meshbus-pubsub` | Google Pub/Sub emulator | `8085` |
+| `meshbus-pulsar` | Apache Pulsar (standalone) | `6650` |
+| `meshbus-hivemq` | HiveMQ CE (MQTT 5.0) | `1883` |
 
 ### 2. Run the demo console
 
@@ -70,6 +76,8 @@ You'll get an interactive menu:
     [9]  AWS SNS
     [A]  AWS EventBridge
     [B]  Google Cloud Tasks
+    [C]  Apache Pulsar
+    [D]  HiveMQ / MQTT 5.0
 
     [0]  Exit
 ```
@@ -312,6 +320,18 @@ dotnet add package Lib.MeshBus.EventBridge
 ```bash
 dotnet add package Lib.MeshBus
 dotnet add package Lib.MeshBus.GoogleCloudTasks
+```
+
+### Apache Pulsar
+```bash
+dotnet add package Lib.MeshBus
+dotnet add package Lib.MeshBus.Pulsar
+```
+
+### MQTT (HiveMQ / any MQTT 5.0 broker)
+```bash
+dotnet add package Lib.MeshBus
+dotnet add package Lib.MeshBus.Mqtt
 ```
 
 ---
@@ -752,6 +772,69 @@ services.AddMeshBus(bus => bus.UseGoogleCloudTasks(opts =>
 
 ---
 
+### Apache Pulsar
+
+```csharp
+using Lib.MeshBus.DependencyInjection;
+using Lib.MeshBus.Pulsar.DependencyInjection;
+
+services.AddMeshBus(bus => bus.UseApachePulsar(opts =>
+{
+    opts.ServiceUrl        = "pulsar://localhost:6650"; // Pulsar broker URL
+    opts.SubscriptionName  = "meshbus-subscription";   // Consumer subscription name
+    opts.SubscriptionType  = "Shared";                 // "Exclusive", "Shared", "Failover", "KeyShared"
+    opts.InitialPosition   = "Earliest";               // "Earliest" or "Latest"
+}));
+```
+
+**Concept mapping:**
+| MeshBus | Apache Pulsar |
+|---------|---------------|
+| Topic | Persistent topic (e.g. `persistent://public/default/orders`) |
+| Message.Id | MessageMetadata property `meshbus-message-id` |
+| Message.Headers | MessageMetadata custom properties |
+| Message.CorrelationId | MessageMetadata property `meshbus-correlation-id` |
+| PublishAsync | IProducer\<T\>.Send (one producer per topic, cached) |
+| SubscribeAsync | IConsumer\<T\>.Receive polling loop per topic |
+
+**Local testing** — start with `docker compose up -d pulsar`.
+
+---
+
+### MQTT (HiveMQ)
+
+```csharp
+using Lib.MeshBus.DependencyInjection;
+using Lib.MeshBus.Mqtt.DependencyInjection;
+
+// Minimal (works with any MQTT 5.0 broker — HiveMQ, Mosquitto, EMQX, …)
+services.AddMeshBus(bus => bus.UseMqtt(opts =>
+{
+    opts.BrokerHost        = "localhost";      // Broker hostname
+    opts.BrokerPort        = 1883;             // 1883 plain, 8883 TLS
+    opts.ClientId          = "my-service";     // Optional (auto-generated if empty)
+    opts.UseTls            = false;            // Enable TLS/SSL
+    opts.Username          = "";               // Optional credentials
+    opts.Password          = "";
+    opts.QualityOfService  = "AtLeastOnce";   // "AtMostOnce", "AtLeastOnce", "ExactlyOnce"
+    opts.CleanStart        = true;             // MQTT 5 CleanStart flag
+}));
+```
+
+**Concept mapping:**
+| MeshBus | MQTT |
+|---------|------|
+| Topic | MQTT topic string (e.g. `meshbus/orders/created`) |
+| Message.Id | UserProperty `meshbus-message-id` |
+| Message.Headers | MQTT 5 UserProperties |
+| Message.CorrelationId | MQTT 5 CorrelationData (UTF-8 encoded) |
+| PublishAsync | HiveMQClient.PublishAsync (MQTT5PublishMessage) |
+| SubscribeAsync | HiveMQClient.SubscribeAsync + OnMessageReceived event |
+
+**Local testing** — start with `docker compose up -d hivemq`.
+
+---
+
 ## 🔄 Migration Guide
 
 ### Migrating from Kafka to RabbitMQ
@@ -936,18 +1019,18 @@ services.AddMeshBus(bus => bus.UseKafka(...));
 
 ## Compatibility Matrix
 
-| Feature | Kafka | RabbitMQ | Azure Service Bus | Azure Event Hubs | AWS SQS | Google Pub/Sub | Azure Event Grid | AWS SNS | AWS EventBridge | Google Cloud Tasks |
-|---------|:-----:|:--------:|:-----------------:|:----------------:|:-------:|:--------------:|:----------------:|:-------:|:---------------:|:------------------:|
-| PublishAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| PublishBatchAsync | ✅ | ✅ | ✅ (native batch) | ✅ (native batch) | ✅ (up to 10/req) | ✅ | ✅ (native batch) | ✅ (up to 10/req) | ✅ (up to 10/req) | ✅ |
-| SubscribeAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pull delivery) | ✅ (via SQS) | ✅ (via SQS) | ✅ (polling) |
-| UnsubscribeAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Headers/Metadata | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| CorrelationId | ✅ | ✅ (native) | ✅ (native) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Durable Messages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Custom Serialization | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| IAsyncDisposable | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Local Emulator | ✅ (KRaft) | ✅ | ✅ (official) | — | ✅ (ElasticMQ) | ✅ (gcloud) | — | ✅ (LocalStack) | ✅ (LocalStack) | ✅ (emulator) |
+| Feature | Kafka | RabbitMQ | Azure Service Bus | Azure Event Hubs | AWS SQS | Google Pub/Sub | Azure Event Grid | AWS SNS | AWS EventBridge | Google Cloud Tasks | Apache Pulsar | MQTT (HiveMQ) |
+|---------|:-----:|:--------:|:-----------------:|:----------------:|:-------:|:--------------:|:----------------:|:-------:|:---------------:|:------------------:|:-------------:|:-------------:|
+| PublishAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| PublishBatchAsync | ✅ | ✅ | ✅ (native batch) | ✅ (native batch) | ✅ (up to 10/req) | ✅ | ✅ (native batch) | ✅ (up to 10/req) | ✅ (up to 10/req) | ✅ | ✅ | ✅ |
+| SubscribeAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (pull delivery) | ✅ (via SQS) | ✅ (via SQS) | ✅ (polling) | ✅ (polling loop) | ✅ (event-driven) |
+| UnsubscribeAsync | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Headers/Metadata | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| CorrelationId | ✅ | ✅ (native) | ✅ (native) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (native) |
+| Durable Messages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (QoS ≥1) |
+| Custom Serialization | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| IAsyncDisposable | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Local Emulator | ✅ (KRaft) | ✅ | ✅ (official) | — | ✅ (ElasticMQ) | ✅ (gcloud) | — | ✅ (LocalStack) | ✅ (LocalStack) | ✅ (emulator) | ✅ (standalone) | ✅ (HiveMQ CE) |
 
 ---
 
@@ -972,6 +1055,8 @@ docker compose down -v
 | RabbitMQ | `meshbus-rabbitmq` | `5672` (AMQP) · `15672` (Management UI) |
 | ElasticMQ (AWS SQS) | `meshbus-elasticmq` | `9324` (SQS API) · `9325` (UI) |
 | Google Pub/Sub Emulator | `meshbus-pubsub` | `8085` |
+| Apache Pulsar (standalone) | `meshbus-pulsar` | `6650` (binary) · `8081` (Admin API) |
+| HiveMQ CE (MQTT 5.0) | `meshbus-hivemq` | `1883` (MQTT) |
 
 **RabbitMQ Management UI:** http://localhost:15672 — credentials: `guest / guest`
 
@@ -1017,6 +1102,8 @@ dotnet test --filter "FullyQualifiedName~EventGrid"
 dotnet test --filter "FullyQualifiedName~SNS"
 dotnet test --filter "FullyQualifiedName~EventBridge"
 dotnet test --filter "FullyQualifiedName~GoogleCloudTasks"
+dotnet test --filter "FullyQualifiedName~Pulsar"
+dotnet test --filter "FullyQualifiedName~Mqtt"
 
 # With code coverage
 dotnet test --collect:"XPlat Code Coverage"
@@ -1043,8 +1130,8 @@ dotnet test --collect:"XPlat Code Coverage"
 ### ⬜ Phase 3 — Enterprise & Specialized
 - [ ] ActiveMQ
 - [ ] IBM MQ
-- [ ] HiveMQ (MQTT)
-- [ ] Apache Pulsar
+- [x] HiveMQ (MQTT)
+- [x] Apache Pulsar
 
 ---
 
@@ -1107,6 +1194,12 @@ Lib.MeshBus/
 ├── Lib.MeshBus.GoogleCloudTasks/   # Google Cloud Tasks provider
 │   └── DependencyInjection/
 │       └── GoogleCloudTasksMeshBusBuilderExtensions.cs
+├── Lib.MeshBus.Pulsar/             # Apache Pulsar provider
+│   └── DependencyInjection/
+│       └── PulsarMeshBusBuilderExtensions.cs
+├── Lib.MeshBus.Mqtt/               # MQTT 5.0 provider (HiveMQ / Mosquitto / EMQX)
+│   └── DependencyInjection/
+│       └── MqttMeshBusBuilderExtensions.cs
 ├── Lib.MeshBus.Tests/              # Unit tests
 └── README.md                       # Documentation
 ```
